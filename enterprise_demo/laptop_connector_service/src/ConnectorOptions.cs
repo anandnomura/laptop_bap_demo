@@ -7,6 +7,7 @@ internal sealed record ConnectorOptions(
     string ClientPfxPath,
     string ClientPfxPassword,
     string CaCertificatePath,
+    string AuditOutboxPath,
     bool RequireSignedClients)
 {
     public static ConnectorOptions Parse(string[] args)
@@ -32,6 +33,7 @@ internal sealed record ConnectorOptions(
             Path.GetFullPath(Required("client-pfx")),
             Required("pfx-password"),
             Path.GetFullPath(Required("ca-cert")),
+            Path.GetFullPath(values.GetValueOrDefault("audit-outbox", Path.Combine(AppContext.BaseDirectory, "audit-outbox.jsonl"))),
             bool.TryParse(values.GetValueOrDefault("require-signed-clients", "false"), out var required) && required);
     }
 }

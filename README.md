@@ -7,7 +7,7 @@ The current production-shaped path uses:
 - C#/.NET 8 only for Windows endpoint binaries: `claude_guard.exe`, `bap_connector_service.exe`, and `bap_resource_client.exe`.
 - Python for central, portable BAP replicas, front door, resource gateway, dashboard, and protected-resource simulator.
 - The official Cedar CLI and a validated Cedar schema/policy set for actual demo decisions.
-- Windows named pipes locally, mTLS centrally, RS256 grants, two BAP replicas, shared audit state, and target-side denial of direct access.
+- Windows named pipes locally, mTLS centrally, RS256 grants, two BAP replicas, correlated append-only audit evidence, and target-side denial of direct access.
 
 ## Quick start
 
@@ -23,6 +23,8 @@ Keep the dashboard at `http://127.0.0.1:11445` visible. In another terminal:
 ```powershell
 enterprise_demo\run-enterprise-smoke-test.bat
 ```
+
+Audit state is preserved across starts. Use `py -3 enterprise_demo\orchestration\start_demo.py --reset-state` only when you intentionally want a clean demonstration; the prior database and connector outbox are archived under `enterprise_demo\runtime\archive\`.
 
 Expected evidence includes:
 
@@ -69,6 +71,7 @@ Read [POLICY_MODEL.md](enterprise_demo/POLICY_MODEL.md) for request attributes, 
 - [Claude, Cursor, Copilot, and generic adapters](enterprise_demo/AGENT_ADAPTERS.md)
 - [Production deployment blueprint](enterprise_demo/ENTERPRISE_DEPLOYMENT.md)
 - [Signing runbook](enterprise_demo/SIGNING_RUNBOOK.md)
+- [Audit evidence model, queries, and production storage](enterprise_demo/audit/README.md)
 
 ## Repository layout
 
@@ -82,6 +85,7 @@ Read [POLICY_MODEL.md](enterprise_demo/POLICY_MODEL.md) for request attributes, 
 | `enterprise_demo/resource_gateway/` | Independent grant validation and resource forwarding |
 | `enterprise_demo/protected_resource/` | Target-side direct-access denial simulator |
 | `enterprise_demo/central_dashboard/` | Central evidence view, not an enforcement service |
+| `enterprise_demo/audit/` | Canonical audit schema, production PostgreSQL contract, search and retention design |
 | `enterprise_demo/orchestration/` | Build, Cedar installation, start/stop, and smoke test |
 | `local_poc/` | Preserved original Python-only proof of concept with independent README/tests |
 

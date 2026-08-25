@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import socket
 import ssl
 import subprocess
@@ -20,6 +21,7 @@ from common.paths import (  # noqa: E402
     DASHBOARD_PORT,
     PKI_ROOT,
     RESOURCE_GATEWAY_PORT,
+    STATE_DB,
 )
 from common.tls import mtls_client_context  # noqa: E402
 
@@ -185,8 +187,41 @@ def main() -> int:
         "NO_GRANT_DENIED",
         "DIRECT_ACCESS_DENIED",
         "GRANT_REJECTED",
+        "AUTHORIZATION_DECISION",
+        "TOOL_DECISION",
+        "EXECUTION_RESULT",
     }:
         assert expected in kinds, f"Missing central audit evidence: {expected}"
+
+    integrity_status, integrity = request_json(
+        f"http://127.0.0.1:{DASHBOARD_PORT}/api/integrity", method="GET"
+    )
+    assert integrity_status == 200 and integrity["ok"] and integrity["checked"] >= len(state["events"])
+    access_status, access_result = request_json(
+        f"http://127.0.0.1:{DASHBOARD_PORT}/api/access?session_id={session_id}", method="GET"
+    )
+    assert access_status == 200 and access_result["access"]
+    read_access = next(row for row in access_result["access"] if row["action"] == "database.read")
+    assert read_access["decision"] == "ALLOW"
+    assert read_access["execution_outcome"] == "EXECUTED"
+    assert read_access["user_id"] and read_access["task_summary"] and read_access["execution_id"]
+    audit_status, audit_result = request_json(
+        f"http://127.0.0.1:{DASHBOARD_PORT}/api/audit?request_id={read_access['request_id']}", method="GET"
+    )
+    assert audit_status == 200 and len(audit_result["events"]) >= 5
+    assert all("token" not in json.dumps(event["details"]).lower() for event in audit_result["events"])
+    assert all("token" not in grant for grant in state["grants"])
+    with sqlite3.connect(STATE_DB) as audit_database:
+        assert audit_database.execute("SELECT count(*) FROM grants WHERE token<>''").fetchone()[0] == 0
+        try:
+            audit_database.execute(
+                "UPDATE audit_events SET message=message WHERE sequence=(SELECT min(sequence) FROM audit_events)"
+            )
+            audit_database.commit()
+            raise AssertionError("Audit event UPDATE unexpectedly succeeded")
+        except sqlite3.DatabaseError as error:
+            audit_database.rollback()
+            assert "append-only" in str(error)
 
     replicas: set[str] = set()
     for index in range(8):
@@ -216,6 +251,7 @@ def main() -> int:
     print("  [PASS] Read grant executed; write required approval; delete was denied before execution")
     print("  [PASS] Missing, fictitious, and direct resource paths were independently denied")
     print("  [PASS] Central dashboard captured the full enforcement sequence")
+    print("  [PASS] Correlated audit search, secret exclusion, and append-only hash-chain integrity passed")
     return 0
 
 

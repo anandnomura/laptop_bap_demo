@@ -16,7 +16,9 @@ Store the connector mTLS certificate as a non-exportable machine key restricted 
 
 Run the Python BAP API, approval coordinator, grant service, audit ingestion, and resource gateway control plane as separate scalable Linux container workloads. Use an ingress/API gateway for mTLS termination and workload identity. Run at least three replicas across failure zones.
 
-Replace demo SQLite with PostgreSQL for authoritative state, Redis only for bounded caches/rate limits, and Kafka or the company event platform for durable audit. Keep grant-signing keys in HSM/KMS. Use a central Cedar engine/sidecar; do not spawn the Cedar CLI per production request.
+Replace demo SQLite with PostgreSQL for authoritative state, Redis only for bounded caches/rate limits, and Kafka or the company event platform for durable audit ingestion. Materialize operational searches in partitioned PostgreSQL, stream detections to SIEM, and retain immutable evidence in WORM object storage with independently signed daily checkpoints. Keep grant-signing keys in HSM/KMS. Use a central Cedar engine/sidecar; do not spawn the Cedar CLI per production request. The event and database contracts are in [audit/README.md](audit/README.md).
+
+Audit ingestion authenticates each connector/workload, validates the canonical schema, redacts/blocks secrets, deduplicates `event_id`, and preserves source and receive timestamps. Connector outbox backlog, ingestion lag, malformed events, chain/checkpoint mismatches, denied production attempts, fake grants, and direct-path attempts page Security Operations. Search/export uses enterprise SSO and separate least-privilege roles for developers, support, investigators, auditors, and legal hold. Application identities cannot update/delete evidence or administer retention.
 
 ## Required network segmentation
 

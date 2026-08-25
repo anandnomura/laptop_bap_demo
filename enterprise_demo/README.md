@@ -16,6 +16,8 @@ Claude Code
 
 The central dashboard at `http://127.0.0.1:11445` displays evidence; it is not an enforcement endpoint. Port 11022 is unused.
 
+Evidence is correlated from the hook to the protected resource using trace, request, decision, grant, and execution IDs. The dashboard provides filtered access timelines, raw event search, JSONL export, and local hash-chain integrity verification. Grant tokens and other secret fields are redacted and never displayed.
+
 ## Build and run
 
 From the repository root:
@@ -37,6 +39,14 @@ Stop everything with:
 enterprise_demo\stop-enterprise-demo.bat
 ```
 
+State is persistent by default. For a clean demo, stop the services and run:
+
+```powershell
+py -3 enterprise_demo\orchestration\start_demo.py --reset-state
+```
+
+This archives old state instead of silently deleting it.
+
 The build downloads the pinned official Cedar CLI, verifies its checksum, builds the three Windows binaries, creates demo PKI, and applies a demo Authenticode signature. Generated tools, keys, certificates, binaries, logs, databases, and runtime state are ignored by Git.
 
 ## Directory guide
@@ -53,6 +63,7 @@ Every active component has its own README with exact verification commands:
 | `resource_gateway/` | Independent grant enforcement | [README](resource_gateway/README.md) |
 | `protected_resource/` | Gateway-only target simulator | [README](protected_resource/README.md) |
 | `central_dashboard/` | Read-only evidence UI | [README](central_dashboard/README.md) |
+| `audit/` | Event contract, production schema, queries, integrity/retention model | [README](audit/README.md) |
 | `demo_pki/` | Demo certificates and signing | [README](demo_pki/README.md) |
 | `common/` | Shared Python library | [README](common/README.md) |
 | `orchestration/` | Build/start/stop/smoke test | [README](orchestration/README.md) |
@@ -66,8 +77,9 @@ Every active component has its own README with exact verification commands:
 - [AGENT_ADAPTERS.md](AGENT_ADAPTERS.md): Claude, Cursor, Copilot, MCP, and generic-agent adaptation.
 - [ENTERPRISE_DEPLOYMENT.md](ENTERPRISE_DEPLOYMENT.md): endpoint, central services, network segmentation, scaling, and rollout.
 - [SIGNING_RUNBOOK.md](SIGNING_RUNBOOK.md): production binary signing and trust policy.
+- [audit/README.md](audit/README.md): who/what/why/decision/execution evidence, search, export, tamper evidence, and production storage.
 - [../DEMO_SCRIPT.md](../DEMO_SCRIPT.md): presentation-ready end-to-end script.
 
 ## Demo versus production
 
-The demo uses Python HTTP services on localhost, SQLite, a downloaded Cedar CLI process, demo PKI, self-issued Authenticode certificates, and automatic mock approval activation. Production uses container orchestration, durable shared stores, a central Cedar runtime, enterprise PKI/HSM, an actual approval service, explicit Windows service/pipe ACLs, full signature validation, and network-enforced gateway-only resource paths.
+The demo uses Python HTTP services on localhost, append-only hash-chained SQLite, a downloaded Cedar CLI process, demo PKI, self-issued Authenticode certificates, and automatic mock approval activation. Production uses container orchestration, Kafka/event streaming, partitioned PostgreSQL, immutable object retention/SIEM, a central Cedar runtime, enterprise PKI/HSM, an actual approval service, explicit Windows service/pipe ACLs, full signature validation, and network-enforced gateway-only resource paths.

@@ -10,6 +10,7 @@ internal sealed class EnterpriseClient : IDisposable
     private readonly ConnectorOptions _options;
     private readonly HttpClient _bap;
     private readonly HttpClient _resource;
+    private readonly SemaphoreSlim _auditLock = new(1, 1);
 
     public EnterpriseClient(ConnectorOptions options)
     {
@@ -44,23 +45,83 @@ internal sealed class EnterpriseClient : IDisposable
     public Task<(int Status, JsonObject Body)> BapAsync(string path, JsonObject payload) => PostAsync(_bap, path, payload);
     public Task<(int Status, JsonObject Body)> ResourceAsync(JsonObject payload) => PostAsync(_resource, "execute", payload);
 
-    public async Task AuditAsync(string kind, string message, JsonObject details, string level = "info")
+    public async Task AuditAsync(string kind, string message, JsonObject details, string level = "info", bool required = true)
     {
+        var envelope = new JsonObject
+        {
+            ["source"] = "LAPTOP CONNECTOR",
+            ["kind"] = kind,
+            ["message"] = message,
+            ["level"] = level,
+            ["details"] = details.DeepClone()
+        };
+        await _auditLock.WaitAsync();
         try
         {
-            await BapAsync("audit", new JsonObject
+            await FlushAuditOutboxUnsafeAsync();
+            Exception? lastError = null;
+            for (var attempt = 1; attempt <= 3; attempt++)
             {
-                ["source"] = "LAPTOP CONNECTOR",
-                ["kind"] = kind,
-                ["message"] = message,
-                ["level"] = level,
-                ["details"] = details
-            });
+                try
+                {
+                    var (status, _) = await BapAsync("audit", envelope);
+                    if (status == 200) return;
+                    lastError = new HttpRequestException($"Central audit returned HTTP {status}");
+                }
+                catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+                {
+                    lastError = exception;
+                }
+                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt));
+            }
+            AppendAuditOutbox(envelope);
+            if (required)
+            {
+                throw new HttpRequestException("Central audit unavailable; event was durably queued and the protected operation failed closed", lastError);
+            }
+            Console.Error.WriteLine("Central audit unavailable after resource execution; event durably queued for replay.");
         }
-        catch (Exception exception)
+        finally
         {
-            Console.Error.WriteLine($"Central audit unavailable: {exception}");
+            _auditLock.Release();
         }
+    }
+
+    private async Task FlushAuditOutboxUnsafeAsync()
+    {
+        if (!File.Exists(_options.AuditOutboxPath)) return;
+        var lines = await File.ReadAllLinesAsync(_options.AuditOutboxPath);
+        if (lines.Length == 0) return;
+        var remaining = new List<string>();
+        for (var index = 0; index < lines.Length; index++)
+        {
+            try
+            {
+                var eventEnvelope = JsonNode.Parse(lines[index]) as JsonObject
+                    ?? throw new InvalidDataException("Invalid audit outbox event");
+                var (status, _) = await BapAsync("audit", eventEnvelope);
+                if (status != 200) throw new HttpRequestException($"Central audit returned HTTP {status}");
+            }
+            catch
+            {
+                remaining.AddRange(lines[index..]);
+                break;
+            }
+        }
+        var temporary = _options.AuditOutboxPath + ".tmp";
+        Directory.CreateDirectory(Path.GetDirectoryName(_options.AuditOutboxPath)!);
+        await File.WriteAllLinesAsync(temporary, remaining);
+        File.Move(temporary, _options.AuditOutboxPath, true);
+    }
+
+    private void AppendAuditOutbox(JsonObject envelope)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(_options.AuditOutboxPath)!);
+        using var stream = new FileStream(_options.AuditOutboxPath, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, FileOptions.WriteThrough);
+        using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
+        writer.WriteLine(envelope.ToJsonString());
+        writer.Flush();
+        stream.Flush(true);
     }
 
     private static async Task<(int Status, JsonObject Body)> PostAsync(HttpClient client, string path, JsonObject payload)
@@ -78,5 +139,6 @@ internal sealed class EnterpriseClient : IDisposable
     {
         _bap.Dispose();
         _resource.Dispose();
+        _auditLock.Dispose();
     }
 }

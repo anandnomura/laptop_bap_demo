@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import webbrowser
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import IO, Any
 
@@ -19,6 +20,7 @@ sys.path.insert(0, str(DEMO_ROOT))
 from common.http_json import request_json  # noqa: E402
 from common.paths import (  # noqa: E402
     BAP_FRONT_DOOR_PORT,
+    AUDIT_OUTBOX,
     BAP_REPLICA_PORTS,
     DASHBOARD_PORT,
     LOG_ROOT,
@@ -76,6 +78,8 @@ SERVICES: list[tuple[str, list[str]]] = [
             str(PKI_ROOT / "demo-ca.cert.pem"),
             "--require-signed-clients",
             "true",
+            "--audit-outbox",
+            str(AUDIT_OUTBOX),
         ],
     ),
 ]
@@ -122,7 +126,7 @@ def terminate(processes: list[tuple[str, subprocess.Popen[bytes], IO[bytes]]]) -
 def main() -> int:
     parser = argparse.ArgumentParser(description="Start the production-shaped enterprise BAP demo")
     parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--preserve-state", action="store_true", help="Keep prior demo audit/grant state")
+    parser.add_argument("--reset-state", action="store_true", help="Archive and reset demo state (state is preserved by default)")
     arguments = parser.parse_args()
     ensure_runtime()
     required = [
@@ -144,11 +148,23 @@ def main() -> int:
         print(f"Cannot start: ports already in use: {unavailable}", file=sys.stderr)
         return 2
 
-    if not arguments.preserve_state:
+    if arguments.reset_state:
         from common.paths import STATE_DB
-
+        archive = STATE_DB.parent / "archive" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        archive.mkdir(parents=True, exist_ok=True)
         for database_file in (STATE_DB, Path(str(STATE_DB) + "-wal"), Path(str(STATE_DB) + "-shm")):
-            database_file.unlink(missing_ok=True)
+            if database_file.exists():
+                database_file.replace(archive / database_file.name)
+        if AUDIT_OUTBOX.exists():
+            AUDIT_OUTBOX.replace(archive / AUDIT_OUTBOX.name)
+        print(f"Prior state archived at {archive}")
+
+    # Complete schema migration once before concurrently starting all services.
+    # Individual services also validate it for standalone operation.
+    from common.audit_store import AuditStore
+    from common.paths import STATE_DB
+
+    AuditStore(STATE_DB)
 
     processes: list[tuple[str, subprocess.Popen[bytes], IO[bytes]]] = []
     try:

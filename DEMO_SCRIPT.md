@@ -31,7 +31,7 @@ Explain that the build pins and checksum-verifies the official Cedar CLI, builds
 enterprise_demo\start-enterprise-demo.bat
 ```
 
-The dashboard opens at `http://127.0.0.1:11445`. Show the service-ready events. State that this dashboard is evidence, not enforcement, and that production does not use port 11022.
+The dashboard opens at `http://127.0.0.1:11445`. Show the green integrity badge, access-request table, filters, and event sequence. State that this dashboard is evidence, not enforcement, and that production does not use port 11022.
 
 ## 4. Run the deterministic demonstration
 
@@ -51,6 +51,7 @@ ENTERPRISE BAP SMOKE TEST PASSED
   [PASS] Read grant executed; write required approval; delete was denied before execution
   [PASS] Missing, fictitious, and direct resource paths were independently denied
   [PASS] Central dashboard captured the full enforcement sequence
+  [PASS] Correlated audit search, secret exclusion, and append-only hash-chain integrity passed
 ```
 
 ## 5. Explain the positive read
@@ -65,6 +66,8 @@ On the dashboard, follow:
 6. `RESOURCE_EXECUTED` and `RESOURCE_RESULT_RETURNED`.
 
 The grant token is not in Claude's command or result; it remains connector-held.
+
+Copy the read request ID from the access table into the Request ID filter. The resulting events share the same request ID while decision, grant, and execution IDs distinguish each stage. Point out the user, managed device, task summary, action/resource, Cedar rule/revision, execution result, and payload hashes. Click `Export JSONL` to show that the same filtered evidence is investigation-ready.
 
 ## 6. Explain approval-required write
 
@@ -92,6 +95,8 @@ Show these smoke-test events:
 - `DIRECT_ACCESS_DENIED`: a process manually bypasses hooks and contacts the resource.
 
 The last case is crucial: hook bypass still fails because the resource accepts only its gateway path. In production, firewall/VPN/security-group policy also removes the direct route.
+
+Filter `Decision` to `DENY` to show denied proposals separately from executed requests. Then call `Invoke-RestMethod http://127.0.0.1:11445/api/integrity` and show `ok: true`. Explain that production additionally streams evidence to SIEM and WORM storage with signed external checkpoints; the local chain is a demonstrator, not the sole compliance control.
 
 ## 9. Optional live Claude + local LLM
 

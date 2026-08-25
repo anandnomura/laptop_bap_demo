@@ -24,15 +24,19 @@ internal sealed class PipeServer(ConnectorOptions options, ConnectorRuntime runt
     {
         await using (pipe)
         {
+            ClientIdentity? identity = null;
+            var path = string.Empty;
             try
             {
-                var identity = ClientProcessInspector.Inspect(pipe.SafePipeHandle);
+                identity = ClientProcessInspector.Inspect(pipe.SafePipeHandle);
                 var request = await PipeProtocol.ReadAsync(pipe, cancellationToken);
+                path = request["path"]?.GetValue<string>() ?? string.Empty;
                 var response = await AuthorizeClientAndDispatchAsync(identity, request);
                 await PipeProtocol.WriteAsync(pipe, response, cancellationToken);
             }
             catch (Exception exception)
             {
+                try { await runtime.RecordPipeFailureAsync(identity, path, exception); } catch { }
                 var response = Response(500, new JsonObject { ["error"] = $"Connector pipe failure: {exception.Message}" });
                 try { await PipeProtocol.WriteAsync(pipe, response, cancellationToken); } catch { }
             }

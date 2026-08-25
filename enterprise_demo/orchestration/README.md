@@ -14,6 +14,8 @@ Start all seven processes and open the dashboard:
 enterprise_demo\start-enterprise-demo.bat
 ```
 
+Audit/grant state is preserved by default. To intentionally start clean, use `py -3 enterprise_demo\orchestration\start_demo.py --reset-state`; prior files are archived under `enterprise_demo\runtime\archive\`.
+
 Full smoke test:
 
 ```powershell
@@ -26,4 +28,4 @@ Stop and verify cleanup:
 enterprise_demo\stop-enterprise-demo.bat
 ```
 
-The smoke test covers named-pipe identity, mTLS, replica distribution, Cedar allow/approval/deny, grant execution, missing/fictitious grants, direct-resource denial, dashboard evidence, and absence of port 11022.
+The smoke test covers named-pipe identity, mTLS, replica distribution, Cedar allow/approval/deny, grant execution, missing/fictitious grants, direct-resource denial, correlated search, secret exclusion, hash-chain integrity, dashboard evidence, and absence of port 11022.

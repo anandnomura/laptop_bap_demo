@@ -89,6 +89,14 @@ sequenceDiagram
 
 The model and command line never receive the grant. The local resource client carries only a BAP session identifier; the connector retrieves its session-held grant.
 
+## Evidence and audit chain
+
+One `trace_id` follows the agent session. Each proposed resource action receives a `request_id`; every policy evaluation receives a `decision_id`; a permitted action may receive a `grant_id`; and only a gateway attempt receives an `execution_id`. These identifiers are carried through the front door, BAP replica, connector, resource gateway, and protected resource. The access view therefore answers, without guessing or timestamp joins: who requested access, from which device and agent run, for what task/action/resource, which policy and approver decided it, which grant was created, and whether the target actually executed it.
+
+The demo database is append-only through database triggers, hashes each event to its predecessor, indexes correlation fields, excludes grant tokens, and persists by default. The connector has a durable write-through audit outbox: a pre-execution audit failure causes fail-closed behavior; a post-execution result is queued for replay so completed work is not lost from evidence. The local integrity badge detects modification but is not a substitute for production custody.
+
+Production separates decision serving from replicated audit ingestion. Idempotent events flow through Kafka/event streaming into partitioned PostgreSQL for investigations, the SIEM for detection, and immutable/WORM storage with independently signed checkpoints for retention and non-repudiation. Dashboard/API access uses enterprise SSO and RBAC. See [audit/README.md](enterprise_demo/audit/README.md).
+
 ## Approval sequence
 
 For a write, Cedar initially denies `databaseWrite` because `humanApproved=false`. BAP separately evaluates the `requestDatabaseWriteApproval` meta-permission. If that is permitted, BAP returns `REQUIRE_APPROVAL`. After the enterprise approval service supplies signed approval evidence, BAP re-evaluates the original write using current policy and `humanApproved=true`. Only a new permit produces a grant.
@@ -115,7 +123,7 @@ TeaToken validation remains at the enterprise Claude gateway. BAP accepts a stab
 
 ## Central scale and availability
 
-The Python BAP API is stateless across requests except for shared grant, approval, revocation, and audit stores. Multiple replicas sit behind mTLS ingress. Production replaces the demo CLI subprocess with a central Cedar engine/sidecar, SQLite with durable shared services, demo RSA files with HSM/KMS, and the local dashboard with an authenticated operations UI and immutable SIEM stream.
+The Python BAP API is stateless across requests except for shared grant, approval, revocation, and audit stores. Multiple replicas sit behind mTLS ingress. Production replaces the demo CLI subprocess with a central Cedar engine/sidecar, SQLite with durable PostgreSQL and event streaming, demo RSA files with HSM/KMS, and the local dashboard with an authenticated operations UI, SIEM, and immutable retention stream.
 
 Policy bundles are immutable, validated, signed, versioned, atomically deployed, and included in decision/grant evidence. A replica that lacks the active verified bundle is removed from service. BAP or Cedar failure produces deny, not fallback allow.
 

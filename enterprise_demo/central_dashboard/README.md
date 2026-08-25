@@ -12,4 +12,6 @@ Then run:
 enterprise_demo\run-enterprise-smoke-test.bat
 ```
 
-Use the event sequence, grants, approvals, BAP replica names, policy IDs, and denial events in the stakeholder presentation. The dashboard is evidence only; stopping or hiding it does not alter enforcement. Production requires authenticated access and SIEM-backed durable evidence.
+Use the access-request table to answer who requested what, why, which policy decided it, whether approval occurred, which grant was issued, and whether execution succeeded. Filters cover identity, request/run, action, resource, decision, policy, event type, and time. `Export JSONL` downloads the current evidence filter, and the integrity badge verifies the local append-only hash chain.
+
+API examples and the production event/storage contract are in [../audit/README.md](../audit/README.md). The dashboard is evidence only; stopping or hiding it does not alter enforcement. This localhost UI is intentionally unauthenticated for the demo. Production uses enterprise SSO, role-scoped search, a durable event pipeline, SIEM, and WORM retention.

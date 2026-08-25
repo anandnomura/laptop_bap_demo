@@ -9,6 +9,7 @@ RUNTIME_ROOT = DEMO_ROOT / "runtime"
 PKI_ROOT = RUNTIME_ROOT / "pki"
 LOG_ROOT = RUNTIME_ROOT / "logs"
 STATE_DB = RUNTIME_ROOT / "enterprise-demo.db"
+AUDIT_OUTBOX = RUNTIME_ROOT / "connector-audit-outbox.jsonl"
 PID_FILE = RUNTIME_ROOT / "processes.json"
 
 BAP_FRONT_DOOR_PORT = 11443

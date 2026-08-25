@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import secrets
 import ssl
 import sys
 import threading
@@ -65,15 +66,27 @@ def build_server(port: int, store: AuditStore) -> ThreadingHTTPServer:
             path = urlparse(self.path).path
             body = None
             if method == "POST":
-                length = int(self.headers.get("Content-Length", "0"))
-                body = json.loads(self.rfile.read(length) or b"{}")
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    body = json.loads(self.rfile.read(length) or b"{}")
+                    if not isinstance(body, dict):
+                        raise ValueError("JSON body must be an object")
+                except (ValueError, json.JSONDecodeError) as error:
+                    request_id = "req-" + secrets.token_hex(12)
+                    store.emit("BAP FRONT DOOR", "MALFORMED_REQUEST", "Rejected malformed JSON before routing", {"request_id": request_id, "path": path, "outcome": "DENIED", "decision": "DENY", "decision_reason": str(error), "http_status": 400}, "warning")
+                    self.send_json(400, {"ok": False, "error": "Malformed JSON request", "request_id": request_id})
+                    return
             client_subject = peer_subject(self.connection)
+            details = body or {}
+            correlation = details.get("details") if path == "/audit" and isinstance(details.get("details"), dict) else details
+            request_id = str(correlation.get("request_id") or "req-" + secrets.token_hex(12))
+            trace_id = str(correlation.get("trace_id") or "trc-" + secrets.token_hex(12))
             replica_port = pool.next()
             store.emit(
                 "BAP FRONT DOOR",
                 "MTLS_ACCEPTED",
                 f"Authenticated connector and routed {path} to replica :{replica_port}",
-                {"client_subject": client_subject, "replica_port": replica_port, "path": path},
+                {"mtls_subject": client_subject, "replica_port": replica_port, "path": path, "request_id": request_id, "trace_id": trace_id, "request_payload_hash": store.payload_hash(details), "outcome": "ACCEPTED"},
                 "success",
             )
             try:
@@ -85,6 +98,7 @@ def build_server(port: int, store: AuditStore) -> ThreadingHTTPServer:
                 )
             except Exception as error:
                 status, result = 503, {"error": f"BAP replica unavailable: {error}"}
+                store.emit("BAP FRONT DOOR", "UPSTREAM_FAILURE", "BAP replica was unavailable; request failed closed", {"request_id": request_id, "trace_id": trace_id, "replica_port": replica_port, "path": path, "outcome": "DENIED", "decision": "DENY", "decision_reason": "BAP replica unavailable", "http_status": 503}, "error")
             self.send_json(status, result)
 
         def do_GET(self) -> None:

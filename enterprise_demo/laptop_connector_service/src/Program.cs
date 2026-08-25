@@ -15,7 +15,9 @@ internal static class Program
             Console.WriteLine($"Central BAP: {options.BapBaseUri}");
             Console.WriteLine($"Resource gateway: {options.ResourceGatewayBaseUri}");
             Console.WriteLine($"Signed client enforcement: {options.RequireSignedClients}");
-            await enterprise.AuditAsync("CONNECTOR_SERVICE_READY", "Laptop connector named-pipe service is ready", new());
+            // Startup must remain available through a temporary network outage. The
+            // durable outbox records and replays this event before the next operation.
+            await enterprise.AuditAsync("CONNECTOR_SERVICE_READY", "Laptop connector named-pipe service is ready", new(), required: false);
             await server.RunAsync();
             return 0;
         }
