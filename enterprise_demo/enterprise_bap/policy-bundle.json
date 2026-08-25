@@ -1,0 +1,6 @@
+{
+  "bundle_id": "enterprise-bap-cedar-demo",
+  "revision": "2026-08-24.1",
+  "cedar_cli_version": "4.12.0",
+  "grant_ttl_seconds": 60
+}

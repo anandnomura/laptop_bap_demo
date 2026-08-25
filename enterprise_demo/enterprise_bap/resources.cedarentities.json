@@ -1,0 +1,12 @@
+[
+  {
+    "uid": { "type": "BAP::DataStore", "id": "dev-customer-db" },
+    "attrs": { "environment": "development", "classification": "confidential" },
+    "parents": []
+  },
+  {
+    "uid": { "type": "BAP::DataStore", "id": "prod-customer-db" },
+    "attrs": { "environment": "production", "classification": "restricted" },
+    "parents": []
+  }
+]

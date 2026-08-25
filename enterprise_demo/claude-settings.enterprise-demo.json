@@ -1,0 +1,85 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["session-start"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: register session"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["capture-intent"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: capture intent"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["authorize"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: authorize action"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["permission-request"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: record approval UI"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["post-tool"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: record result"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Users\\User\\Downloads\\Laptop_BAP_CCD\\laptop_bap_demo\\enterprise_demo\\claude_guard\\publish\\claude_guard.exe",
+            "args": ["session-end"],
+            "timeout": 10,
+            "statusMessage": "BAP named pipe: revoke session"
+          }
+        ]
+      }
+    ]
+  }
+}

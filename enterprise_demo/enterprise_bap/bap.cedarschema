@@ -1,0 +1,42 @@
+namespace BAP {
+    entity User;
+
+    entity DataStore {
+        environment: String,
+        classification: String,
+    };
+
+    type AgentContext = {
+        agent: String,
+        agentClass: String,
+        registered: Bool,
+        deviceManaged: Bool,
+        humanApproved: Bool,
+        agentRun: String,
+        task: String,
+    };
+
+    action "databaseRead" appliesTo {
+        principal: User,
+        resource: DataStore,
+        context: AgentContext
+    };
+
+    action "databaseWrite" appliesTo {
+        principal: User,
+        resource: DataStore,
+        context: AgentContext
+    };
+
+    action "databaseDelete" appliesTo {
+        principal: User,
+        resource: DataStore,
+        context: AgentContext
+    };
+
+    action "requestDatabaseWriteApproval" appliesTo {
+        principal: User,
+        resource: DataStore,
+        context: AgentContext
+    };
+}

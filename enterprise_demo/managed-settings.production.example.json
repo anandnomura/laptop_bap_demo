@@ -1,0 +1,91 @@
+{
+  "allowManagedHooksOnly": true,
+  "allowManagedMcpServersOnly": true,
+  "allowManagedPermissionRulesOnly": true,
+  "strictPluginOnlyCustomization": true,
+  "disableSideloadFlags": true,
+  "disableCommandPluginSources": true,
+  "allowedMcpServers": [],
+  "allowedHttpHookUrls": [],
+  "wslInheritsWindowsSettings": true,
+  "permissions": {
+    "disableBypassPermissionsMode": "disable"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["session-start"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["capture-intent"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["authorize"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["permission-request"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["post-tool"],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\BAP\\claude_guard.exe",
+            "args": ["session-end"],
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

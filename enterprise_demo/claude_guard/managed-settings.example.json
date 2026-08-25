@@ -1,0 +1,84 @@
+{
+  "allowManagedHooksOnly": true,
+  "allowManagedPermissionRulesOnly": true,
+  "permissions": {
+    "disableBypassPermissionsMode": "disable"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["session-start"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["capture-intent"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["authorize"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["permission-request"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["post-tool"],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\Program Files\\Company\\ClaudeGuard\\claude_guard.exe",
+            "args": ["session-end"],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
